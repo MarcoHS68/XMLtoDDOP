@@ -1,0 +1,75 @@
+<DVC A="DVC1" B="sprayer" C="V1.0.0" D="A00C8000BE200001" E="ECU2" F="C8C8C8C8C8C8C8" G="FF000000006E65">
+	<DET A="DET1" B="1" C="1" D="Device" E="0" F="0">
+		<DOR A="1000"/>
+		<DOR A="1005"/>
+	</DET>
+	
+	<DET A="DET2" B="2" C="2" D="Function" E="1" F="1">
+		<DOR A="200"/>
+		<DOR A="201"/>
+		<DOR A="202"/>
+		<DOR A="203"/>
+		<DOR A="204"/>
+		<DOR A="205"/>
+		<DOR A="206"/>
+		<DOR A="210"/>
+		<DOR A="211"/>
+		<DOR A="207"/>
+		<DOR A="208"/>
+		<DOR A="209"/>
+		<DOR A="1002"/>
+		<DOR A="1003"/>
+		<DOR A="1004"/>
+		<DOR A="1001"/>
+	</DET>
+	
+	<DET A="DET3" B="3" C="6" D="Connector" E="2" F="1">
+		<DOR A="300"/>
+		<DOR A="301"/>
+		<DOR A="302"/>
+	</DET>
+	
+	<DET A="DET4" B="4" C="4" D="Section1" E="3" F="2">
+		<DOR A="400"/>
+		<DOR A="401"/>
+	</DET>
+
+	<DET A="DET5" B="5" C="4" D="Section2" E="4" F="2">
+		<DOR A="400"/>
+		<DOR A="401"/>
+	</DET>
+	
+	<DPD A="1000" B="141"   C="1" D="9"  E="Actual work state"          F="65535"/>
+	<DPD A="1001" B="80"    C="2" D="17" E="Total volume"               F="501"/>
+	<DPD A="1002" B="116"   C="2" D="17" E="Total area"		            F="502"/>
+	<DPD A="1003" B="119"   C="2" D="17" E="Total effective time"       F="503"/>
+	<DPD A="1004" B="120"   C="2" D="17" E="Total ineffective time"     F="503"/>
+	<DPD A="1005" B="57343" C="0" D="31" E="Default DDI support"        F="65535"/>
+	<DPD A="200"  B="141"   C="1" D="9"  E="Actual work state"		    F="65535"/>
+	<DPD A="201"  B="2"     C="1" D="9"  E="Actual rate"                F="500"/>
+	<DPD A="202"  B="1"     C="2" D="9"  E="Setpoint rate"              F="500"/>
+	<DPD A="203"  B="158"   C="2" D="9"  E="Prescription control state" F="65535"/>
+	<DPD A="204"  B="67"    C="0" D="9"  E="Actual working width"       F="504"/>
+	<DPD A="205"  B="70"    C="0" D="9"  E="Maximum working width"      F="504"/>
+	<DPD A="206"  B="160"   C="2" D="9"  E="Section control state"      F="65535"/>
+	<DPD A="207"  B="134"   C="0" D="8"  E="Boom X offset"              F="504"/>
+	<DPD A="208"  B="135"   C="0" D="8"  E="Boom Y offset"              F="504"/>
+	<DPD A="209"  B="72"    C="0" D="1"  E="Tank level"                 F="505"/>
+	<DPD A="210"  B="161"   C="0" D="9"  E="Act cond work state 01-16"  F="65535"/>
+	<DPD A="211"  B="290"   C="2" D="9"  E="Setpoint cond work state 01-16" F="65535"/>
+	<DPD A="300"  B="134"   C="0" D="8"  E="Connector X offset"         F="504"/>
+	<DPD A="301"  B="157"   C="0" D="8"  E="Connector type"             F="65535"/>
+	
+	<DPT A="302"  B="135"   C="0" D="Connector Y offset" E="504"/>
+	
+	<DPD A="400"  B="135"   C="0" D="8"  E="Section Y offset"           F="504"/>
+	<DPD A="401"  B="67"    C="0" D="8"  E="Actual working width"       F="504"/>
+	
+	<DVP A="500"  B="0"     C="0.0001"    D="1" E="L/ha"/>
+	<DVP A="501"  B="0"     C="1"         D="0" E="L"/>
+	<DVP A="502"  B="0"     C="0.0001"    D="2" E="ha"/>
+	<DVP A="503"  B="0"     C="0.0002777" D="2" E="hr"/>
+	<DVP A="504"  B="0"     C="1"         D="0"/>
+	<DVP A="505"  B="0"     C="0.001"     D="0" E="L"/>
+	
+</DVC>
