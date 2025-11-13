@@ -460,7 +460,7 @@ e_errors    fnc_Token_DVP(ofstream* File)
 e_errors    fnc_Parsing(string line, ofstream *file)
 {
     static char l_indbuf, l_buf[150], l_token[10], l_tokenID, l_tag, l_tokenClose;
-    char        l_chr;
+    char        l_chr, l_loop;
     uint32_t    l_len, l_ind;
     e_errors    l_err;
     char*       p_tag;
@@ -481,6 +481,28 @@ e_errors    fnc_Parsing(string line, ofstream *file)
                 l_MasPars++;
             }
             break;
+        case 1: // Attesa prmio carattere 'D' o '?' o '!' o '/'
+            switch (l_chr) {
+            case 'D':
+                l_tokenID = 1;
+                l_MasPars++;
+                break;
+            case '?':
+                l_MasPars = 0;
+                break;
+            case '!':
+                l_MasPars = 7;
+                break;
+            case '/':
+                l_tokenClose++;
+                break;
+            default:
+                l_MasPars = 0;
+                break;
+            }
+            l_buf[l_indbuf++] = l_chr;
+            break;
+        /*
         case 1: // Attende spazio per chiave
             if (l_chr == ' ') {
                 l_buf[l_indbuf] = 0;
@@ -500,7 +522,12 @@ e_errors    fnc_Parsing(string line, ofstream *file)
                 break;
             }
             // Qui manca il break: non è un baco
+        */
         case 2: // Verifica chiave
+            l_buf[l_indbuf++] = l_chr;
+            if (++l_tokenID < 3)
+                break;
+            l_buf[l_indbuf] = 0;
             l_Comment = 0;
             if (strstr(l_buf, "DVC")) {
                 l_tokenID = O_Token_DVC;
@@ -564,6 +591,7 @@ e_errors    fnc_Parsing(string line, ofstream *file)
                 }
                 l_MasPars = 10;
             }
+            /*
             else if (strstr(l_buf, "?xml")) {
                 // Chiave XML: ignora senza segnalare warning
                 l_MasPars = 0;
@@ -576,6 +604,7 @@ e_errors    fnc_Parsing(string line, ofstream *file)
                 l_MasPars = 40;
                 break;
             }
+            */
             else {
                 // Chiave non trovata: riparte da capo
                 l_MasPars = 0;
@@ -590,6 +619,22 @@ e_errors    fnc_Parsing(string line, ofstream *file)
             l_tag = 0;
             l_indbuf = 0;
             break;
+        case 7: // Primo '-' di un commento
+            if (l_chr == '-') {
+                l_MasPars++;
+            } else {
+                l_MasPars = 0;
+            }
+            break;
+        case 8: // Secondo '-' di un commento
+            if (l_chr == '-') {
+                l_Comment = 1;
+                l_MasPars = 40;
+            } else {
+                l_MasPars = 0;
+            }
+            break;
+
         case 10:    // Attende tag cercando '='
             if (l_chr <= ' ')
                 break;
@@ -736,10 +781,13 @@ e_errors    fnc_Parsing(string line, ofstream *file)
 // Visualizza Help
 void    fnc_Help(void)
 {
-    std::cout << "\nXMLtoDDOP HELP";
+    std::cout << "\n+----------------+";
+    std::cout << "\n| XMLtoDDOP HELP |";
+    std::cout << "\n+----------------+\n";
     std::cout << "\nXMLtoDDOP [opt] <Source XML> <Destination C File>";
     std::cout << "\nExample: XMLtoDDOP ddop.xml ddop.c";
-    std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments";
+    std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments\n";
+    std::cout << "\nXML comments <!-- ... --> are accepted and inserted into C file as comments\n";
     std::cout << "\nWarning: Tag B of DPD key is express in decimal. If you want to express it in hex, please add '0x' before number\n";
     std::cout << "\n-d or -d0 = Debug Mode with only the XML lines added into C file as comments";
     std::cout << "\n-d1       = Debug Mode with all informations added into C file as comments";
