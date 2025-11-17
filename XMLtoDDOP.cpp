@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <Windows.h>
 #include "XMLtoDDOP.h"
 
 using namespace std;
@@ -777,22 +778,51 @@ e_errors    fnc_Parsing(string line, ofstream *file)
     return l_err;
 }
 
+void    SetColor(int l_Txt, int l_Bkg)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, l_Bkg | l_Txt);
+}
 // ---------------
 // Visualizza Help
 void    fnc_Help(void)
 {
+    
+    SetColor(15, 0);
     std::cout << "\n+----------------+";
     std::cout << "\n| XMLtoDDOP HELP |";
     std::cout << "\n+----------------+\n";
-    std::cout << "\nXMLtoDDOP [opt] <Source XML> <Destination C File>";
-    std::cout << "\nExample: XMLtoDDOP ddop.xml ddop.c";
-    std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments\n";
-    std::cout << "\nXML comments <!-- ... --> are accepted and inserted into C file as comments\n";
-    std::cout << "\nWarning: Tag B of DPD key is express in decimal. If you want to express it in hex, please add '0x' before number\n";
+    SetColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY, 0);
+    std::cout << "\nUsage: XMLtoDDOP [opt] [opt] [<Source XML>] [<Destination C File>]";
+    SetColor(7, 0);
+    std::cout << "\nExample: XMLtoDDOP ddop-in.xml ddop-out.c = Creates ddop-out.c file from ddop-in.xml source file";
+    std::cout << "\n         XMLtoDDOP = Creates ddop.c file from ddop.xml source file";
+    std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments";
+    std::cout << "\n         XMLtoDDOP -f ddop_fnc ddop.xml ddop.c = Destination C file has array name ddop_fnc[]";
+    std::cout << "\n";
+    SetColor(FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY, 0);
+    std::cout << "\nXML comments <!-- ... --> are accepted and inserted into C file as comments";
+    std::cout << "\nTag B of DPD key is express in decimal. If you want to express it in hex, please add '0x' before number\n";
+    SetColor(7, 0);
+    std::cout << "\nOPTIONS:";
+    std::cout << "\n-f <nome> = Function name of C destination file";
     std::cout << "\n-d or -d0 = Debug Mode with only the XML lines added into C file as comments";
     std::cout << "\n-d1       = Debug Mode with all informations added into C file as comments";
     std::cout << "\n-h = Help";
     std::cout << "\n-c = Credits\n";
+}
+
+void    fnc_Credits(void)
+{
+    SetColor(15, 0);
+    std::cout << "\n----------------";
+    std::cout << "\nXMLtoDDOP V1.0.0";
+    std::cout << "\n----------------";
+    SetColor(7, 0);
+    std::cout << "\nConverts XML ISOBUS DDOP file into C File";
+    std::cout << "\nWritten by: Marco Di Biaggio";
+    std::cout << "\n(C)2025 Agricolmeccanica srl";
+    std::cout << "\n        UDINE - Italy\n";
 }
 
 // ----------------------------
@@ -801,66 +831,56 @@ void    fnc_Help(void)
 // Esegue parsing e conversione
 int main(int argc, char *argv[])
 {
+    char l_FncName, l_XmlFile, l_CFile;
     char* xmlF, * cF;
     char xDef[20] = "ddop.xml";
     char cDef[20] = "ddop.c";
+    char FncName[50];
 
     l_Debug = 0;
     l_Comment = 0;
+    l_FncName = 0;
+    l_XmlFile = 0;
+    l_CFile = 0;
+    xmlF = xDef;
+    cF = cDef;
+    strcpy_s(FncName, "DDOP_E2IS");
 
-    switch (argc) {
-    case 2:
-        if (!strcmp(argv[1], "-h")) {
-            // Help
+    for (char l_loop = 1; l_loop < argc; l_loop++) {
+        if (!strcmp(argv[l_loop], "-h")) {
             fnc_Help();
             return 0;
-        } else if (!strcmp(argv[1], "-c")) {
+        } else if (!strcmp(argv[l_loop], "-c")) {
             // Credits
-            std::cout << "\nXMLtoDDOP";
-            std::cout << "\nConvert XML ISOBUS DDOP file into C File";
-            std::cout << "\nWritten by: Marco Di Biaggio";
-            std::cout << "\n(C)2025 Agricolmeccanica srl";
-            std::cout << "\n        UDINE - Italy\n";
+            fnc_Credits();
             return 0;
-        }
-        xmlF = argv[1];
-        cF = cDef;
-        break;
-    case 3:
-        if (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-d0")) {
-            l_Debug = 1;    // Debug completo
-            xmlF = argv[2];
-            cF = cDef;
-        } else if (!strcmp(argv[1], "-d1")) {
-            l_Debug = 2;    // Debug parziale (solo righe xml)
-            xmlF = argv[2];
-            cF = cDef;
-        } else if (!strcmp(argv[1], "-h")) {
-            // Help
-            fnc_Help();
-            return 0;
-        } else {
-            xmlF = argv[1];
-            cF = argv[2];
-        }
-        break;
-    case 4:
-        // Parametri
-        if (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-d0"))
+        } else if (!strcmp(argv[l_loop], "-d") || !strcmp(argv[l_loop], "-d0")) {
+            // Debug parziale - solo righe xml
             l_Debug = 1;
-        else if (!strcmp(argv[1], "-d1"))
+        } else if (!strcmp(argv[l_loop], "-d1")) {
+            // Debug completo
             l_Debug = 2;
-        else if (!strcmp(argv[1], "-h")) {
-            // Help
-            fnc_Help();
-            return 0;
+        } else if (!strcmp(argv[l_loop], "-f")) {
+            // Indica prossimo parametro e' nome funzione
+            l_FncName = 1;
+        } else {
+            if (l_FncName) {
+                if (strlen(argv[l_loop]) >= sizeof(FncName))
+                    argv[l_loop][sizeof(FncName) - 1] = 0;
+                strcpy_s(FncName, argv[l_loop]);
+                l_FncName = 0;
+            } else {
+                if (strstr(argv[l_loop], ".xml")) {
+                    // File input xml
+                    xmlF = argv[l_loop];
+                    l_XmlFile = 1;
+                } else if (strstr(argv[l_loop], ".c")) {
+                    // File output c
+                    cF = argv[l_loop];
+                    l_CFile = 1;
+                }
+            }
         }
-        xmlF = argv[2];
-        cF = argv[3];
-        break;
-    default:
-        std::cout << "\nError: No input file\n";
-        return 1;
     }
 
     ifstream    xmlFile(xmlF);
@@ -874,7 +894,7 @@ int main(int argc, char *argv[])
 
     cFile << "#include <stdint.h>\n";
     cFile << "#include <stdio.h>\n\n";
-    cFile << "const uint8_t DDOP_E2IS[] =\n{\n";
+    cFile << "const uint8_t " << FncName << "[] = \n{\n";
 
     // Inizializza variabili importanti
     gu_RegDDOP.ObjectID = 0;
@@ -894,25 +914,14 @@ int main(int argc, char *argv[])
     }
 
     cFile << "};\n\n";
-    cFile << "const size_t DDOP_E2IS_len = sizeof(DDOP_E2IS);\n" << endl;
+    cFile << "const size_t " << FncName << "_len = sizeof(" << FncName << "); \n" << endl;
 
     xmlFile.close();
     cFile.close();
 
     if (l_err != O_NoErr)
-        cout << "Conversione conclusa con Errori. Vedere file generato." << endl;
+        cout << "Conversion ended with Errors. See generated file." << endl;
     else
-        cout << "Conversione completata. File [" << cF << "] generato." << endl;
+        cout << "Conversion complete. File [" << cF << "] generated from [" << xmlF << "] file." << endl;
     return 0;
 }
-
-// Per eseguire il programma: CTRL+F5 oppure Debug > Avvia senza eseguire debug
-// Per eseguire il debug del programma: F5 oppure Debug > Avvia debug
-
-// Suggerimenti per iniziare: 
-//   1. Usare la finestra Esplora soluzioni per aggiungere/gestire i file
-//   2. Usare la finestra Team Explorer per connettersi al controllo del codice sorgente
-//   3. Usare la finestra di output per visualizzare l'output di compilazione e altri messaggi
-//   4. Usare la finestra Elenco errori per visualizzare gli errori
-//   5. Passare a Progetto > Aggiungi nuovo elemento per creare nuovi file di codice oppure a Progetto > Aggiungi elemento esistente per aggiungere file di codice esistenti al progetto
-//   6. Per aprire di nuovo questo progetto in futuro, passare a File > Apri > Progetto e selezionare il file con estensione sln
