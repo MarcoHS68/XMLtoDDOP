@@ -1,4 +1,12 @@
-// XMLtoDDOP.cpp : Questo file contiene la funzione 'main', in cui inizia e termina l'esecuzione del programma.
+//
+// XMLtoDDOP.cpp : Questo file contiene tutto il codice del programma
+// Author......: Marco Di Biaggio
+// Start date..: 07 Nov 2025
+// End date....: 11 Nov 2025
+// Last modify.: 18 Nov 2025
+// 
+// IDE.........: VisualStudio2019
+// Program type: Console
 //
 
 #include <iostream>
@@ -10,12 +18,14 @@
 
 using namespace std;
 
+// Global variables
 static uint8_t  l_Debug, l_Comment;
 static uint8_t  l_MasPars;
-static char     l_Buffer[255];
+static char     l_Buffer[255], l_Buffer2[255];
 
-struct u_regddop	gu_RegDDOP;
+struct u_regddop	gu_RegDDOP; // Main register
 
+// Gloabal constants
 const char  tbl_Errors[O_Err_END][50] = {
     "No Errors",
     "Empty String",         // O_Err_EmptyString
@@ -23,6 +33,36 @@ const char  tbl_Errors[O_Err_END][50] = {
     "Invalid Tag",          // O_Err_InvalidTag
     "Missing brackets",     // O_Err_MissingBrackets
     "DOR tag overflow",     // O_Err_DOR_Overflow
+};
+
+const char  tbl_DevElementType[16][50] = {
+    "0=Not possible! ERROR",
+    "1=Device",
+    "2=Function",
+    "3=Bin",
+    "4=Section",
+    "5=Unit",
+    "6=Connector",
+    "7=Navigation Reference",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR",
+    ">7=Not possible! ERROR"
+};
+
+const char  tbl_ProcessDataProperties[8][50] = {
+    "0",
+    "1=Member of default set",
+    "2=Settable",
+    "3=Member of default ser and Settable",
+    "4=Control soiurce",
+    "5=Member of default set and Control source",
+    "6=Not possible! ERROR",
+    "7=Not possible! ERROR"
 };
 
 // -----------------------
@@ -35,7 +75,7 @@ e_errors    fnc_Token_DVC(ofstream* File)
         *File << "\t//[-- TOKEN DVC --]\n";
 
     // Token DVC
-    sprintf_s(l_Buffer, "\t0x%02X, 0x%02X, 0x%02X,\t// DVC\n", 'D', 'V', 'C');
+    sprintf_s(l_Buffer, "\t0x%02X, 0x%02X, 0x%02X,\t// DVC: %s\n", 'D', 'V', 'C', gu_RegDDOP.XML_Line.tag_A);
     *File << l_Buffer;
 
     // Object ID
@@ -185,7 +225,7 @@ e_errors    fnc_Token_DET(ofstream* File)
         *File << "\t//[-- TOKEN DET --]\n";
 
     // Token DET
-    sprintf_s(l_Buffer, "\t0x%02X, 0x%02X, 0x%02X,\t// DET\n", 'D', 'E', 'T');
+    sprintf_s(l_Buffer, "\t0x%02X, 0x%02X, 0x%02X,\t// DET: %s\n", 'D', 'E', 'T', gu_RegDDOP.XML_Line.tag_A);
     *File << l_Buffer;
 
     // Object ID
@@ -194,8 +234,8 @@ e_errors    fnc_Token_DET(ofstream* File)
     *File << l_Buffer;
 
     // Device Element Type
-    l_val = gu_RegDDOP.XML_Line.tag_B[0] & 0xf;
-    sprintf_s(l_Buffer, "\t0x%02X,\t// Device Element Type: %01d\n", (uint8_t)l_val, (uint8_t)l_val);
+    l_val = gu_RegDDOP.XML_Line.tag_C[0] & 0xf;
+    sprintf_s(l_Buffer, "\t0x%02X,\t// Device Element Type: %s\n", (uint8_t)l_val, tbl_DevElementType[l_val]);
     *File << l_Buffer;
 
     // Designator
@@ -306,13 +346,19 @@ e_errors    fnc_Token_DPD(ofstream* File)
     *File << l_Buffer;
 
     // Process Data Properties
-    l_val = atoi(gu_RegDDOP.XML_Line.tag_C);
-    sprintf_s(l_Buffer, "\t0x%02X,\t// Process Data Properties: %d\n", (uint8_t)l_val, l_val);
+    l_val = atoi(gu_RegDDOP.XML_Line.tag_C) & 7;
+    sprintf_s(l_Buffer, "\t0x%02X,\t// Process Data Properties: %s\n", (uint8_t)l_val, tbl_ProcessDataProperties[l_val]);
     *File << l_Buffer;
 
     // Process Data Trigger
-    l_val = atoi(gu_RegDDOP.XML_Line.tag_D);
-    sprintf_s(l_Buffer, "\t0x%02X,\t// Process Data Trigger: %d\n", (uint8_t)l_val, l_val);
+    l_val = atoi(gu_RegDDOP.XML_Line.tag_D) & 0x1f;
+    sprintf_s(l_Buffer2, "%d", l_val);
+    if (l_val & 1)  strcat_s(l_Buffer2, "-Time interval");
+    if (l_val & 2)  strcat_s(l_Buffer2, "-Distance interval");
+    if (l_val & 4)  strcat_s(l_Buffer2, "-Threshold limits");
+    if (l_val & 8)  strcat_s(l_Buffer2, "-On change");
+    if (l_val & 16) strcat_s(l_Buffer2, "-Total");
+    sprintf_s(l_Buffer, "\t0x%02X,\t// Process Data Trigger: %s\n", (uint8_t)l_val, l_Buffer2);
     *File << l_Buffer;
 
     // Designator
@@ -482,7 +528,7 @@ e_errors    fnc_Parsing(string line, ofstream *file)
                 l_MasPars++;
             }
             break;
-        case 1: // Attesa prmio carattere 'D' o '?' o '!' o '/'
+        case 1: // Attesa primo carattere 'D' o '?' o '!' o '/'
             switch (l_chr) {
             case 'D':
                 l_tokenID = 1;
@@ -778,11 +824,14 @@ e_errors    fnc_Parsing(string line, ofstream *file)
     return l_err;
 }
 
+// ----------------------------
+// Imposta colore Testo e Fondo
 void    SetColor(int l_Txt, int l_Bkg)
 {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(hConsole, l_Bkg | l_Txt);
 }
+
 // ---------------
 // Visualizza Help
 void    fnc_Help(void)
@@ -812,6 +861,8 @@ void    fnc_Help(void)
     std::cout << "\n-c = Credits\n";
 }
 
+// ------------------
+// Visualizza Credits
 void    fnc_Credits(void)
 {
     SetColor(15, 0);
@@ -846,6 +897,7 @@ int main(int argc, char *argv[])
     cF = cDef;
     strcpy_s(FncName, "DDOP_E2IS");
 
+    // Estrazione parametri
     for (char l_loop = 1; l_loop < argc; l_loop++) {
         if (!strcmp(argv[l_loop], "-h")) {
             fnc_Help();
