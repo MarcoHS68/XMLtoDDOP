@@ -26,6 +26,8 @@ static char     l_Buffer[255], l_Buffer2[255];
 struct u_regddop	gu_RegDDOP; // Main register
 
 // Gloabal constants
+
+// Stringhe errori
 const char  tbl_Errors[O_Err_END][50] = {
     "No Errors",
     "Empty String",         // O_Err_EmptyString
@@ -33,8 +35,11 @@ const char  tbl_Errors[O_Err_END][50] = {
     "Invalid Tag",          // O_Err_InvalidTag
     "Missing brackets",     // O_Err_MissingBrackets
     "DOR tag overflow",     // O_Err_DOR_Overflow
+    "DPD tag overflow",     // O_Err_DPD_Overflow
+    "DVP tag overflow",     // O_Err_DVP_Overflow
 };
 
+// Stringhe device element type
 const char  tbl_DevElementType[16][50] = {
     "0=Not possible! ERROR",
     "1=Device",
@@ -54,6 +59,7 @@ const char  tbl_DevElementType[16][50] = {
     ">7=Not possible! ERROR"
 };
 
+// Stringhe process data properties
 const char  tbl_ProcessDataProperties[8][50] = {
     "0",
     "1=Member of default set",
@@ -64,6 +70,64 @@ const char  tbl_ProcessDataProperties[8][50] = {
     "6=Not possible! ERROR",
     "7=Not possible! ERROR"
 };
+
+// Opzioni funzioni fnc_DOR_Check o fnc_DVP_Check
+enum e_check_opt {
+    O_Element_Add,
+    O_Element_Check,
+};
+
+// ----------------------------
+// Imposta colore Testo e Fondo
+void    SetColor(int l_Txt, int l_Bkg)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, l_Bkg | l_Txt);
+}
+
+// -----------------------------------------------
+// Gestisce controlli su elementi DOR-DPD-DPT, DVP
+//
+// Inp:
+// l_Opt    Azione richiesta
+// p_Key    Puntatore alla chiave da aggiornare (DOR-DPD-DPT, DVP)
+// l_Val    Valore DOR da inserire
+// 
+// Out:
+// O_NoErr      Tutto Ok
+// O_Err_NoKey  Codice elemento non trovato
+// O_Err_DOR_Overflow   Raggiunto limite elementi
+e_errors    fnc_KEY_Check(e_check_opt l_Opt, p_KEY_Check p_Key, uint16_t l_Val) 
+{
+    switch (l_Opt) {
+    case O_Element_Add:
+        if (p_Key->Index >= O_DOR_MaxElements)
+            return O_Err_DOR_Overflow;
+
+        // Verifica che il valore non ci sia gia'
+        for (uint16_t l_loop = 0; l_loop < p_Key->Index; l_loop++) {
+            if (p_Key->ID[l_loop].Element == l_Val)
+                return O_NoErr;
+        }
+
+        // Aggiunge elemento
+        p_Key->ID[p_Key->Index].Element = l_Val;
+        p_Key->ID[p_Key->Index].Found = 0;
+
+        p_Key->Index++;
+        break;
+    case O_Element_Check:
+        for (uint16_t l_loop = 0; l_loop < p_Key->Index; l_loop++) {
+            if (p_Key->ID[l_loop].Element == l_Val) {
+                p_Key->ID[l_loop].Found++;
+                return O_NoErr;
+            }
+        }
+        return O_Err_NoKey;
+    }
+
+    return O_NoErr;
+}
 
 // -----------------------
 // Interpreta dati tag DVC
@@ -308,7 +372,7 @@ e_errors    fnc_Token_DOR(ofstream* File)
 
     l_val = atoi(gu_RegDDOP.XML_Line.tag_A);
     gu_RegDDOP.XML_DOR[gu_RegDDOP.DOR_Elements].tag_A_DevObjectID = l_val;
-    if (++gu_RegDDOP.DOR_Elements >= O_DOR_MaxElements) {
+    if (++gu_RegDDOP.DOR_Elements >= O_DOR_MaxElements || fnc_KEY_Check(O_Element_Add, &gu_RegDDOP.DOR_Check, l_val) == O_DOR_MaxElements) {
         *File << "\t// [Error: DOR Elements Overflow]\n";
         return O_Err_DOR_Overflow;
     }
@@ -333,6 +397,15 @@ e_errors    fnc_Token_DPD(ofstream* File)
     l_val = atoi(gu_RegDDOP.XML_Line.tag_A);
     sprintf_s(l_Buffer, "\t0x%02X, 0x%02X,\t// Object ID: %d\n", (uint8_t)l_val, (uint8_t)(l_val / 0x100), l_val);
     *File << l_Buffer;
+    if (fnc_KEY_Check(O_Element_Check, &gu_RegDDOP.DOR_Check, l_val) == O_Err_NoKey) {
+        // ID non trovato
+        sprintf_s(l_Buffer, "\t// Object ID [%d] not used!\n\n", l_val);
+        *File << l_Buffer;
+        SetColor(FOREGROUND_GREEN, 0);
+        cout << "Warning:";
+        SetColor(7, 0);
+        cout << " Object ID[" << l_val << "] not used!" << endl;
+    }
 
     // Process Data DDI (hex)
     if (!strncmp(gu_RegDDOP.XML_Line.tag_B, "0x", 2)) {
@@ -383,6 +456,8 @@ e_errors    fnc_Token_DPD(ofstream* File)
     l_val = atoi(gu_RegDDOP.XML_Line.tag_F);
     sprintf_s(l_Buffer, "\t0x%02X, 0x%02X,\t// Device Value Object ID: %d\n\n", (uint8_t)l_val, (uint8_t)(l_val / 0x100), l_val);
     *File << l_Buffer;
+    //fnc_DVP_Check(O_Element_Add, l_val);
+    fnc_KEY_Check(O_Element_Add, &gu_RegDDOP.DVP_Check, l_val);
 
     return O_NoErr;
 }
@@ -405,6 +480,15 @@ e_errors    fnc_Token_DPT(ofstream* File)
     l_val = atoi(gu_RegDDOP.XML_Line.tag_A);
     sprintf_s(l_Buffer, "\t0x%02X, 0x%02X,\t// Object ID: %d\n", (uint8_t)l_val, (uint8_t)(l_val / 0x100), l_val);
     *File << l_Buffer;
+    if (fnc_KEY_Check(O_Element_Check, &gu_RegDDOP.DOR_Check, l_val) == O_Err_NoKey) {
+        // ID non trovato
+        sprintf_s(l_Buffer, "\t// Object ID [%d] not used!\n\n", l_val);
+        *File << l_Buffer;
+        SetColor(FOREGROUND_GREEN, 0);
+        cout << "Warning:";
+        SetColor(7, 0);
+        cout << " Object ID [" << l_val << "] not used!" << endl;
+    }
 
     // Process Data DDI
     l_val = atoi(gu_RegDDOP.XML_Line.tag_B);
@@ -438,6 +522,8 @@ e_errors    fnc_Token_DPT(ofstream* File)
     l_val = atoi(gu_RegDDOP.XML_Line.tag_E);
     sprintf_s(l_Buffer, "\t0x%02X, 0x%02X,\t// Device Value Object ID: %d\n\n", (uint8_t)l_val, (uint8_t)(l_val / 0x100), l_val);
     *File << l_Buffer;
+    //fnc_DVP_Check(O_Element_Add, l_val);
+    fnc_KEY_Check(O_Element_Add, &gu_RegDDOP.DVP_Check, l_val);
 
     return O_NoErr;
 }
@@ -461,6 +547,15 @@ e_errors    fnc_Token_DVP(ofstream* File)
     l_val = atoi(gu_RegDDOP.XML_Line.tag_A);
     sprintf_s(l_Buffer, "\t0x%02X, 0x%02X,\t// Object ID: %d\n", (uint8_t)l_val, (uint8_t)(l_val / 0x100), l_val);
     *File << l_Buffer;
+    if (fnc_KEY_Check(O_Element_Check, &gu_RegDDOP.DVP_Check, l_val) == O_Err_NoKey) {
+        // ID non trovato
+        sprintf_s(l_Buffer, "\t// Object ID [%d] not used!\n\n", l_val);
+        *File << l_Buffer;
+        SetColor(FOREGROUND_GREEN, 0);
+        cout << "Warning:";
+        SetColor(7, 0);
+        cout << " Object ID[" << l_val << "] not used!" << endl;
+    }
 
     // Offset
     l_val32 = atol(gu_RegDDOP.XML_Line.tag_B);
@@ -824,14 +919,6 @@ e_errors    fnc_Parsing(string line, ofstream *file)
     return l_err;
 }
 
-// ----------------------------
-// Imposta colore Testo e Fondo
-void    SetColor(int l_Txt, int l_Bkg)
-{
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, l_Bkg | l_Txt);
-}
-
 // ---------------
 // Visualizza Help
 void    fnc_Help(void)
@@ -867,7 +954,7 @@ void    fnc_Credits(void)
 {
     SetColor(15, 0);
     std::cout << "\n----------------";
-    std::cout << "\nXMLtoDDOP V1.0.0";
+    std::cout << "\nXMLtoDDOP V1.1.0";
     std::cout << "\n----------------";
     SetColor(7, 0);
     std::cout << "\nConverts XML ISOBUS DDOP file into C File";
@@ -950,6 +1037,8 @@ int main(int argc, char *argv[])
 
     // Inizializza variabili importanti
     gu_RegDDOP.ObjectID = 0;
+    memset(&gu_RegDDOP.DOR_Check, 0, sizeof(gu_RegDDOP.DOR_Check));
+    memset(&gu_RegDDOP.DVP_Check, 0, sizeof(gu_RegDDOP.DVP_Check));
     l_MasPars = 0;
 
     // Esegue il parsing del file XML e lo converte in codice C
@@ -973,7 +1062,44 @@ int main(int argc, char *argv[])
 
     if (l_err != O_NoErr)
         cout << "Conversion ended with Errors. See generated file." << endl;
-    else
-        cout << "Conversion complete. File [" << cF << "] generated from [" << xmlF << "] file." << endl;
+    else {
+        bool    b_errs = false;
+
+        for (uint16_t l_loop = 0; l_loop < gu_RegDDOP.DVP_Check.Index; l_loop++) {
+            if (gu_RegDDOP.DVP_Check.ID[l_loop].Found > 1) {
+                // Errore: duplicazione DVP
+                b_errs = true;
+                SetColor(FOREGROUND_RED, 0);
+                cout << "Error..:";
+                SetColor(7, 0);
+                cout << " DVP element [" << gu_RegDDOP.DVP_Check.ID[l_loop].Element << "] duplicated!" << endl;
+            }
+        }
+
+        for (uint16_t l_loop = 0; l_loop < gu_RegDDOP.DOR_Check.Index; l_loop++) {
+            if (gu_RegDDOP.DOR_Check.ID[l_loop].Found == 0) {
+                b_errs = true;
+                SetColor(FOREGROUND_RED, 0);
+                cout << "Error..:";
+                SetColor(7, 0);
+                cout << " DOR element [" << gu_RegDDOP.DOR_Check.ID[l_loop].Element << "] not found in DPD or DPT key!" << endl;
+            } else if (gu_RegDDOP.DOR_Check.ID[l_loop].Found > 1) {
+                // Errore: duplicazione ID
+                b_errs = true;
+                SetColor(FOREGROUND_RED, 0);
+                cout << "Error..:";
+                SetColor(7, 0);
+                cout << " DPD or DPT element [" << gu_RegDDOP.DOR_Check.ID[l_loop].Element << "] duplicated!" << endl;
+            }
+        }
+
+        SetColor(15, 0);
+        if (b_errs == false)
+            cout << "\nConversion completed." << endl;
+        else
+            cout << "\nConversion completed with errors." << endl;
+        cout << "File[" << cF << "] generated from[" << xmlF << "] file." << endl;
+        SetColor(7, 0);
+    }
     return 0;
 }

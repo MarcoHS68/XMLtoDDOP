@@ -32,6 +32,8 @@ enum e_errors {
 	O_Err_InvalidTag,		// Tag non valido
 	O_Err_MissingBrackets,	// Mancano apici apertura
 	O_Err_DOR_Overflow,		// Overflow elementi DOR
+	O_Err_DPD_Overflow,		// Overflow elementi DPD o DPT
+	O_Err_DVP_Overflow,		// Overflow elementi DVP
 
 	O_Err_END
 };
@@ -231,6 +233,8 @@ typedef struct u_XML_DOR {
 	uint16_t	tag_A_DevObjectID;
 } t_uXML_DOR, *p_uXML_DOR;
 
+// ------------------
+// Linea XML rilevata
 typedef struct u_XML_Line {
 	uint8_t	tokenID;
 	char	tag_Token[10];
@@ -243,35 +247,37 @@ typedef struct u_XML_Line {
 	char	tag_G[129];
 } t_uXML_Line, *p_uXML_Line;
 
-// ------------------
-// Registro di lavoro
+// --------------------
+// Limiti massimi array
 #define	O_DET_MaxElements	200
 #define	O_DOR_MaxElements	200
 #define	O_DPD_MaxElements	200
 #define	O_DPT_MaxElements	200
 #define	O_DVP_MaxElements	200
+
+// -----------------------------------
+// Struttura per elementi di controllo
+typedef struct u_Element_Check {
+	uint16_t	Index;
+	struct {
+		uint16_t	Element;	// Codice dell'elemento DOR/DPD/DPT/DVP
+		uint8_t		Found;		// Indica se elemento trovato
+	} ID[O_DOR_MaxElements];
+} t_KEY_Check, *p_KEY_Check;
+
+// ------------------
+// Registro di lavoro
 struct u_regddop {
 	uint16_t	ObjectID;		// ID progressivo degli oggetti DVC, DET
 
 	uint8_t		DET_Level;		// Livello di nesting del Token DET
 	uint16_t	DOR_Elements;	// Elementi DOR di DET
 
-	t_uXML_Line	XML_Line;
-	t_uXML_DOR	XML_DOR[O_DOR_MaxElements];
-	/*
-	t_uXML_DVC	XML_DVC[2];
-	t_uXML_DET	XML_DET[O_DET_MaxElements];
-	t_uXML_DPD	XML_DPD[O_DPD_MaxElements];
-	t_uXML_DPT	XML_DPT[O_DPT_MaxElements];
-	t_uXML_DVP	XMP_DVP[O_DVP_MaxElements];
-	*/
-	union {
-		uint32_t	all;
+	t_KEY_Check	DOR_Check;		// Controllo ID DOR-DPD-DPT
+	t_KEY_Check	DVP_Check;		// Controllo ID DVP
 
-		struct {
-			unsigned : 32;
-		} b;
-	} Stato;
+	t_uXML_Line	XML_Line;		// Linea XML letta
+	t_uXML_DOR	XML_DOR[O_DOR_MaxElements];	// Elementi chiave xml DOR
 };
 
 extern struct u_regddop	gu_RegDDOP;
