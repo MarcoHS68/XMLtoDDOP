@@ -12,7 +12,7 @@ Options:
 
 -d1 = Debug: Insert XML and Debug lines into C file as comments
 
--f array_name = Name the C array with array_name. Without this opzione the array will be named as DDOP_E2IS
+-f array_name = Name the C array with array_name. Without this option the array will be named as DDOP_E2IS
 
 -h = View help informations
 
