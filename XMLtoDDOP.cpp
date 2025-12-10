@@ -931,8 +931,8 @@ void    fnc_Help(void)
     SetColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY, 0);
     std::cout << "\nUsage: XMLtoDDOP [opt] [opt] [<Source XML>] [<Destination C File>]";
     SetColor(7, 0);
-    std::cout << "\nExample: XMLtoDDOP ddop-in.xml ddop-out.c = Creates ddop-out.c file from ddop-in.xml source file";
-    std::cout << "\n         XMLtoDDOP = Creates ddop.c file from ddop.xml source file";
+    std::cout << "\nExample: XMLtoDDOP ddop-in.xml ddop-out.c = Creates ddop-out.c and ddop-out.c.h files from ddop-in.xml source file";
+    std::cout << "\n         XMLtoDDOP = Creates ddop.c and ddop.c.h files from ddop.xml source file";
     std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments";
     std::cout << "\n         XMLtoDDOP -f ddop_fnc ddop.xml ddop.c = Destination C file has array name ddop_fnc[]";
     std::cout << "\n";
@@ -954,10 +954,10 @@ void    fnc_Credits(void)
 {
     SetColor(15, 0);
     std::cout << "\n----------------";
-    std::cout << "\nXMLtoDDOP V1.1.0";
+    std::cout << "\nXMLtoDDOP V1.1.1";
     std::cout << "\n----------------";
     SetColor(7, 0);
-    std::cout << "\nConverts XML ISOBUS DDOP file into C File";
+    std::cout << "\nConverts XML ISOBUS DDOP file into C and H Files";
     std::cout << "\nWritten by: Marco Di Biaggio";
     std::cout << "\n(C)2025 Agricolmeccanica srl";
     std::cout << "\n        UDINE - Italy\n";
@@ -970,9 +970,10 @@ void    fnc_Credits(void)
 int main(int argc, char *argv[])
 {
     char l_FncName, l_XmlFile, l_CFile;
-    char* xmlF, * cF;
+    char* xmlF, * cF, * hF;
     char xDef[20] = "ddop.xml";
     char cDef[20] = "ddop.c";
+    char hDef[20] = "ddop.h";
     char FncName[50];
 
     l_Debug = 0;
@@ -982,6 +983,7 @@ int main(int argc, char *argv[])
     l_CFile = 0;
     xmlF = xDef;
     cF = cDef;
+    hF = hDef;
     strcpy_s(FncName, "DDOP_E2IS");
 
     // Estrazione parametri
@@ -1016,6 +1018,8 @@ int main(int argc, char *argv[])
                 } else if (strstr(argv[l_loop], ".c")) {
                     // File output c
                     cF = argv[l_loop];
+                    sprintf_s(l_Buffer, "%s.h", cF);
+                    hF = l_Buffer;
                     l_CFile = 1;
                 }
             }
@@ -1023,14 +1027,22 @@ int main(int argc, char *argv[])
     }
 
     ifstream    xmlFile(xmlF);
-    ofstream    cFile(cF);
 
+    // Verifica presenza file XML
     if (!xmlFile.is_open()) {
         cerr << "Errore nell'apertura del file XML o file non trovato." << endl;
-        cFile.close();
         return 1;
     }
 
+    // Crea file .h
+    ofstream    hFile(hF);
+    hFile << "#include <stdio.h>\n\n";
+    hFile << "extern const uint8_t " << FncName << "[];\n";
+    hFile << "extern const size_t " << FncName << "_len;\n";
+    hFile.close();
+
+    // Crea file .c
+    ofstream    cFile(cF);
     cFile << "#include <stdint.h>\n";
     cFile << "#include <stdio.h>\n\n";
     cFile << "const uint8_t " << FncName << "[] = \n{\n";
