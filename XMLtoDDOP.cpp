@@ -21,7 +21,7 @@ using namespace std;
 // Global variables
 static uint8_t  l_Debug, l_Comment;
 static uint8_t  l_MasPars;
-static char     l_Buffer[255], l_Buffer2[255];
+static char     l_Buffer[255], l_Buffer2[255], l_HName[100];
 
 struct u_regddop	gu_RegDDOP; // Main register
 
@@ -929,10 +929,10 @@ void    fnc_Help(void)
     std::cout << "\n| XMLtoDDOP HELP |";
     std::cout << "\n+----------------+\n";
     SetColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY, 0);
-    std::cout << "\nUsage: XMLtoDDOP [opt] [opt] [<Source XML>] [<Destination C File>]";
+    std::cout << "\nUsage: XMLtoDDOP [opt] [opt] [<Source XML File>] [<Destination C File>]";
     SetColor(7, 0);
-    std::cout << "\nExample: XMLtoDDOP ddop-in.xml ddop-out.c = Creates ddop-out.c and ddop-out.c.h files from ddop-in.xml source file";
-    std::cout << "\n         XMLtoDDOP = Creates ddop.c and ddop.c.h files from ddop.xml source file";
+    std::cout << "\nExample: XMLtoDDOP ddop-in.xml ddop-out.c = Creates ddop-out.c and ddop-out.h files from ddop-in.xml source file";
+    std::cout << "\n         XMLtoDDOP = Creates ddop.c and ddop.h files from ddop.xml source file";
     std::cout << "\n         XMLtoDDOP -d ddop.xml ddop.c = Add XML rows as comments";
     std::cout << "\n         XMLtoDDOP -f ddop_fnc ddop.xml ddop.c = Destination C file has array name ddop_fnc[]";
     std::cout << "\n";
@@ -941,7 +941,7 @@ void    fnc_Help(void)
     std::cout << "\nTag B of DPD key is express in decimal. If you want to express it in hex, please add '0x' before number\n";
     SetColor(7, 0);
     std::cout << "\nOPTIONS:";
-    std::cout << "\n-f <nome> = Function name of C destination file";
+    std::cout << "\n-f <name> = Function array name of C destination file";
     std::cout << "\n-d or -d0 = Debug Mode with only the XML lines added into C file as comments";
     std::cout << "\n-d1       = Debug Mode with all informations added into C file as comments";
     std::cout << "\n-h = Help";
@@ -1018,8 +1018,10 @@ int main(int argc, char *argv[])
                 } else if (strstr(argv[l_loop], ".c")) {
                     // File output c
                     cF = argv[l_loop];
-                    sprintf_s(l_Buffer, "%s.h", cF);
-                    hF = l_Buffer;
+                    strcpy_s(l_HName, argv[l_loop]);
+                    l_HName[strlen(l_HName) - 1] = 'h';
+                    //sprintf_s(l_Buffer, "%s.h", cF);
+                    hF = l_HName;
                     l_CFile = 1;
                 }
             }
@@ -1110,7 +1112,7 @@ int main(int argc, char *argv[])
             cout << "\nConversion completed." << endl;
         else
             cout << "\nConversion completed with errors." << endl;
-        cout << "File[" << cF << "] generated from[" << xmlF << "] file." << endl;
+        cout << "Files [" << cF << "] and [" << hF << "] generated from [" << xmlF << "] file." << endl;
         SetColor(7, 0);
     }
     return 0;
